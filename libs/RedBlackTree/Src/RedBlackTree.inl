@@ -1,6 +1,6 @@
 
-template<typename KeyType, typename ValueType>
-std::string RedBlackTree<KeyType, ValueType>::GetColorName(const RedBlackTree<KeyType, ValueType>::NodeColor color)
+template<typename KeyType, typename ValueType, typename Comparator>
+std::string RedBlackTree<KeyType, ValueType, Comparator>::GetColorName(const RedBlackTree<KeyType, ValueType, Comparator>::NodeColor color)
 {
 	static const std::map<NodeColor, std::string> colors({
 		{NodeColor::Black, "B"},
@@ -10,14 +10,14 @@ std::string RedBlackTree<KeyType, ValueType>::GetColorName(const RedBlackTree<Ke
 	return it != colors.cend() ? it->second : "E";
 }
 
-template<typename KeyType, typename ValueType>
-RedBlackTree<KeyType, ValueType>::RedBlackTree()
+template<typename KeyType, typename ValueType, typename Comparator>
+RedBlackTree<KeyType, ValueType, Comparator>::RedBlackTree()
 	: end_node_(std::make_unique<int>(0))
 {}
 
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::DelElement(const KeyType& new_value)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::DelElement(const KeyType& key_value)
 {
 	if (!head_node_)
 	{
@@ -28,12 +28,12 @@ void RedBlackTree<KeyType, ValueType>::DelElement(const KeyType& new_value)
 
 	while(next_node != nullptr)
 	{
-		if (next_node->Equal(new_value))
+		if (next_node->Equal(key_value))
 		{
 			break;
 		}
 
-		if (next_node->Less(new_value))
+		if (next_node->Less(key_value))
 		{
 			const auto right_child = next_node->GetRightChildRawPtr();
 			if (right_child == nullptr)
@@ -59,15 +59,16 @@ void RedBlackTree<KeyType, ValueType>::DelElement(const KeyType& new_value)
 	{
 		return;
 	}
-
+	--size_;
 	RecursiveDelete(next_node);
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::AddElement(const KeyType& key_value, const ValueType& new_value)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::AddElement(const KeyType& key_value, const ValueType& new_value)
 {
 	if (!head_node_)
 	{
+		++size_;
 		head_node_ = std::make_unique<RedBlackTreeNode>(key_value, new_value);
 		head_node_->SetColor(NodeColor::Black);
 		return;
@@ -77,13 +78,13 @@ void RedBlackTree<KeyType, ValueType>::AddElement(const KeyType& key_value, cons
 
 	while(next_node != nullptr)
 	{
-		if (next_node->Equal(new_value))
+		if (next_node->Equal(key_value))
 		{
 			next_node = nullptr;
 			break;
 		}
 
-		if (next_node->Less(new_value))
+		if (next_node->Less(key_value))
 		{
 			const auto right_child = next_node->GetRightChildRawPtr();
 			if (right_child == nullptr)
@@ -110,7 +111,7 @@ void RedBlackTree<KeyType, ValueType>::AddElement(const KeyType& key_value, cons
 
 	auto new_node = std::make_unique<RedBlackTreeNode>(key_value, new_value);
 	auto new_node_raw_ptr = new_node.get();
-	if (next_node->Less(new_value))
+	if (next_node->Less(key_value))
 	{
 		next_node->ChangeRightChild(std::move(new_node));
 	}
@@ -118,17 +119,17 @@ void RedBlackTree<KeyType, ValueType>::AddElement(const KeyType& key_value, cons
 	{
 		next_node->ChangeLeftChild(std::move(new_node));
 	}
-
+	++size_;
 	FixTreeAfterInsert(new_node_raw_ptr);
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::Print() const
+template<typename KeyType, typename ValueType, typename Comparator>
+std::string RedBlackTree<KeyType, ValueType, Comparator>::Print() const
 {
-	std::cout << "Start print"<<std::endl;
+	std::stringstream sstream;
 	if (!head_node_)
 	{
-		return;
+		return {};
 	}
 	std::stack<std::pair<const RedBlackTreeNode*, std::string>> nodes;
 	nodes.emplace(head_node_.get(), "");
@@ -136,11 +137,10 @@ void RedBlackTree<KeyType, ValueType>::Print() const
 	{
 		const auto [node, indent] = nodes.top();
 		nodes.pop();
-		std::cout << indent;
+		sstream << indent;
 		if (node != nullptr)
 		{
-			std::cout << *node;
-			std::cout << "- {" << *node << "(" << RedBlackTree<KeyType, ValueType>::GetColorName(node->GetColor()) << ")"<< "}";
+			sstream << "- " << *node << "(" << RedBlackTree<KeyType, ValueType, Comparator>::GetColorName(node->GetColor()) << ")";
 			const auto left_child = node->GetLeftChildRawPtr();
 			const auto right_child = node->GetRightChildRawPtr();
 			nodes.emplace(right_child, indent + "| ");
@@ -148,14 +148,15 @@ void RedBlackTree<KeyType, ValueType>::Print() const
 		}
 		else
 		{
-			std::cout << "- nullptr";
+			sstream << "- nullptr";
 		}
-		std::cout << std::endl;
+		sstream << std::endl;
 	}
+	return sstream.str();
 }
 
-template<typename KeyType, typename ValueType>
-bool RedBlackTree<KeyType, ValueType>::CheckTree() const
+template<typename KeyType, typename ValueType, typename Comparator>
+bool RedBlackTree<KeyType, ValueType, Comparator>::CheckTree() const
 {
 	if (!head_node_)
 	{
@@ -257,8 +258,21 @@ bool RedBlackTree<KeyType, ValueType>::CheckTree() const
 	return true;
 }
 
-template<typename KeyType, typename ValueType>
-typename RedBlackTree<KeyType, ValueType>::iterator RedBlackTree<KeyType, ValueType>::begin() const
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::Clear()
+{
+	head_node_.reset();
+	size_ = 0;
+}
+
+template<typename KeyType, typename ValueType, typename Comparator>
+size_t RedBlackTree<KeyType, ValueType, Comparator>::GetSize()
+{
+	return size_;
+}
+
+template<typename KeyType, typename ValueType, typename Comparator>
+typename RedBlackTree<KeyType, ValueType, Comparator>::iterator RedBlackTree<KeyType, ValueType, Comparator>::begin() const
 {
 	const auto end_node_ptr = reinterpret_cast<RedBlackTreeNode*>(end_node_.get());
 	if (!head_node_)
@@ -268,15 +282,15 @@ typename RedBlackTree<KeyType, ValueType>::iterator RedBlackTree<KeyType, ValueT
 	return iterator(head_node_->GetMinNode(), end_node_ptr);
 }
 
-template<typename KeyType, typename ValueType>
-typename RedBlackTree<KeyType, ValueType>::iterator RedBlackTree<KeyType, ValueType>::end() const
+template<typename KeyType, typename ValueType, typename Comparator>
+typename RedBlackTree<KeyType, ValueType, Comparator>::iterator RedBlackTree<KeyType, ValueType, Comparator>::end() const
 {
 	const auto end_node_ptr = reinterpret_cast<RedBlackTreeNode*>(end_node_.get());
 	return iterator(end_node_ptr, end_node_ptr);
 }
 
-template<typename KeyType, typename ValueType>
-typename RedBlackTree<KeyType, ValueType>::const_iterator RedBlackTree<KeyType, ValueType>::cbegin() const
+template<typename KeyType, typename ValueType, typename Comparator>
+typename RedBlackTree<KeyType, ValueType, Comparator>::const_iterator RedBlackTree<KeyType, ValueType, Comparator>::cbegin() const
 {
 	const auto end_node_ptr = reinterpret_cast<RedBlackTreeNode*>(end_node_.get());
 	if (!head_node_)
@@ -286,15 +300,15 @@ typename RedBlackTree<KeyType, ValueType>::const_iterator RedBlackTree<KeyType, 
 	return const_iterator(head_node_->GetMinNode(), end_node_ptr);
 }
 
-template<typename KeyType, typename ValueType>
-typename RedBlackTree<KeyType, ValueType>::const_iterator RedBlackTree<KeyType, ValueType>::cend() const
+template<typename KeyType, typename ValueType, typename Comparator>
+typename RedBlackTree<KeyType, ValueType, Comparator>::const_iterator RedBlackTree<KeyType, ValueType, Comparator>::cend() const
 {
 	const auto end_node_ptr = reinterpret_cast<RedBlackTreeNode*>(end_node_.get());
 	return const_iterator(end_node_ptr, end_node_ptr);
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::DeleteLeaf(RedBlackTreeNode* node)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::DeleteLeaf(RedBlackTreeNode* node)
 {
 	const auto right_child = node->GetRightChildRawPtr();
 	const auto left_child = node->GetLeftChildRawPtr();
@@ -331,83 +345,138 @@ void RedBlackTree<KeyType, ValueType>::DeleteLeaf(RedBlackTreeNode* node)
 	if (parent->GetColor() == NodeColor::Red)
 	{
 		assert(brother->GetColor() == NodeColor::Black);
-
-		brother->SetColor(NodeColor::Red);
 		parent->SetColor(NodeColor::Black);
-		return; 
+
+		if (!brother->HasLeaf())
+		{
+			brother->SetColor(NodeColor::Red);
+			return; 
+		}
+		if (node_side == NodeSide::Right)
+		{
+			auto right_nephew = brother->GetRightChildRawPtr();
+			if (right_nephew != nullptr)
+			{
+				LeftRotate(brother);
+				brother = right_nephew;
+				right_nephew = nullptr;
+			}
+			brother->SetColor(NodeColor::Red);
+			RightRotate(parent);
+			brother->GetLeftChildRawPtr()->SetColor(NodeColor::Black);
+			brother->GetRightChildRawPtr()->SetColor(NodeColor::Black);
+		}
+		else
+		{
+			auto left_nephew = brother->GetLeftChildRawPtr();
+			if (left_nephew != nullptr)
+			{
+				RightRotate(brother);
+				brother = left_nephew;
+				left_nephew = nullptr;
+			}
+			brother->SetColor(NodeColor::Red);
+			LeftRotate(parent);
+			brother->GetRightChildRawPtr()->SetColor(NodeColor::Black);
+			brother->GetLeftChildRawPtr()->SetColor(NodeColor::Black);
+		}
+		return;
 	}
 
 	if (brother->GetColor() == NodeColor::Red)
 	{
 		assert(brother->HasAllLeafs());
-
+		brother->SetColor(NodeColor::Black);
 		if (node_side == NodeSide::Left)
 		{
 			LeftRotate(parent);
 			assert(parent->GetRightChildRawPtr() != nullptr);
-			parent->GetRightChildRawPtr()->SetColor(NodeColor::Red);
+			auto right_node_ptr = parent->GetRightChildRawPtr();
+			assert(right_node_ptr != nullptr);
+			if (!right_node_ptr->HasLeaf())
+			{
+				parent->SetColor(NodeColor::Black);
+				right_node_ptr->SetColor(NodeColor::Red);
+				return;
+			}
+			auto right_grandson_ptr = right_node_ptr->GetRightChildRawPtr();
+			if (!right_grandson_ptr)
+			{
+				right_node_ptr->SetColor(NodeColor::Red);
+				RightRotate(right_node_ptr);
+				right_node_ptr = parent->GetRightChildRawPtr();
+				right_node_ptr->SetColor(NodeColor::Black);
+			}
+			LeftRotate(parent);
+			right_node_ptr->GetRightChildRawPtr()->SetColor(NodeColor::Black);
+			right_node_ptr->GetLeftChildRawPtr()->SetColor(NodeColor::Black);
+			right_node_ptr->SetColor(NodeColor::Red);
 		}
 		else
 		{
 			RightRotate(parent);
 			assert(parent->GetLeftChildRawPtr() != nullptr);
-			parent->GetLeftChildRawPtr()->SetColor(NodeColor::Red);
+			auto left_node_ptr = parent->GetLeftChildRawPtr();
+			assert(left_node_ptr != nullptr);
+			if (!left_node_ptr->HasLeaf())
+			{
+				parent->SetColor(NodeColor::Black);
+				left_node_ptr->SetColor(NodeColor::Red);
+				return;
+			}
+			auto left_grandson_ptr = left_node_ptr->GetLeftChildRawPtr();
+			if (!left_grandson_ptr)
+			{
+				left_node_ptr->SetColor(NodeColor::Red);
+				LeftRotate(left_node_ptr);
+				left_node_ptr = parent->GetLeftChildRawPtr();
+				left_node_ptr->SetColor(NodeColor::Black);
+			}
+			RightRotate(parent);
+			left_node_ptr->GetLeftChildRawPtr()->SetColor(NodeColor::Black);
+			left_node_ptr->GetRightChildRawPtr()->SetColor(NodeColor::Black);
+			left_node_ptr->SetColor(NodeColor::Red);
 		}
-		brother->SetColor(NodeColor::Black);
 		return;
 	}
-
-	auto left_nephew = brother->GetLeftChildRawPtr();
-	auto right_nephew = brother->GetRightChildRawPtr();
-	if (left_nephew == nullptr && right_nephew == nullptr)
+	if (brother->HasLeaf())
 	{
-		brother->SetColor(NodeColor::Red);
-		FixTreeWhileDeleteNode(parent);
+		if (node_side == NodeSide::Left)
+		{
+			auto right_nephew = brother->GetRightChildRawPtr();
+			if (right_nephew == nullptr)
+			{
+				brother->SetColor(NodeColor::Red);
+				RightRotate(brother);
+				brother = parent->GetRightChildRawPtr();
+				right_nephew = brother->GetRightChildRawPtr();
+				brother->SetColor(NodeColor::Black);
+			}
+			right_nephew->SetColor(NodeColor::Black);
+			LeftRotate(parent);
+		}
+		else
+		{
+			auto left_nephew = brother->GetLeftChildRawPtr();
+			if (left_nephew == nullptr)
+			{
+				brother->SetColor(NodeColor::Red);
+				LeftRotate(brother);
+				brother = parent->GetLeftChildRawPtr();
+				left_nephew = brother->GetLeftChildRawPtr();
+				brother->SetColor(NodeColor::Black);
+			}
+			left_nephew->SetColor(NodeColor::Black);
+			RightRotate(parent);
+		}
 		return;
 	}
-
-	if (node_side == NodeSide::Left && right_nephew == nullptr)
-	{
-		RightRotate(brother);
-		brother = node->GetBrother();
-		assert(brother->GetColor() == NodeColor::Red);
-		brother->SetColor(NodeColor::Black);
-		left_nephew = brother->GetLeftChildRawPtr();
-		right_nephew = brother->GetRightChildRawPtr();
-		assert(right_nephew != nullptr);
-		assert(right_nephew->GetColor() == NodeColor::Black);
-		right_nephew->SetColor(NodeColor::Red);
-	} 
-	else if (node_side == NodeSide::Right && left_nephew == nullptr)
-	{
-		LeftRotate(brother);
-		brother = node->GetBrother();
-		assert(brother->GetColor() == NodeColor::Red);
-		brother->SetColor(NodeColor::Black);
-		left_nephew = brother->GetLeftChildRawPtr();
-		right_nephew = brother->GetRightChildRawPtr();
-		assert(left_nephew != nullptr);
-		assert(left_nephew->GetColor() == NodeColor::Black);
-		left_nephew->SetColor(NodeColor::Red);
-	}
-
-	if (node_side == NodeSide::Left)
-	{
-		assert(right_nephew != nullptr);
-		right_nephew->SetColor(NodeColor::Black);
-		LeftRotate(parent);
-	}
-	else
-	{
-		assert(left_nephew != nullptr);
-		left_nephew->SetColor(NodeColor::Black);
-		RightRotate(parent);
-	}
-	return;
+	brother->SetColor(NodeColor::Red);
+	FixTreeWhileDeleteNode(parent);
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::RecursiveDelete(RedBlackTreeNode* node)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::RecursiveDelete(RedBlackTreeNode* node)
 {
 	auto next_node = node;
 	if (node == nullptr)
@@ -428,15 +497,40 @@ void RedBlackTree<KeyType, ValueType>::RecursiveDelete(RedBlackTreeNode* node)
 
 		if (right_child != nullptr && left_child != nullptr)
 		{
-			const auto grandson = right_child->GetLeftChildRawPtr();
+			auto parent = next_node->GetParent();
+			auto grandson = right_child->GetLeftChildRawPtr();
 			if (grandson != nullptr)
 			{
-				next_node->SetValue(grandson->GetValue());
-				next_node = grandson;
+				while (grandson->GetLeftChildRawPtr() != nullptr)
+				{
+					grandson = grandson->GetLeftChildRawPtr();
+				}
+
+				if (parent == nullptr)
+				{
+					auto grandson_parent = grandson->GetParent();
+					auto old_head_node = std::move(head_node_);
+					head_node_ = grandson_parent->GetLeftChild();
+					next_node->SwapColorWithChilds(*grandson);
+					grandson_parent->ChangeLeftChild(std::move(old_head_node));
+				}
+				else
+				{
+					next_node->SwapNodes(*grandson);
+				}
 				continue;
 			}
-			next_node->SetValue(right_child->GetValue());
-			next_node = right_child;
+			if (parent == nullptr)
+			{
+				auto old_head_node = std::move(head_node_);
+				head_node_ = next_node->GetRightChild();;
+				next_node->SwapColorWithChilds(*right_child);
+				right_child->ChangeRightChild(std::move(old_head_node));
+			}
+			else
+			{
+				next_node->SwapNodes(*right_child);
+			}
 			continue;
 		}
 		break;
@@ -460,8 +554,8 @@ void RedBlackTree<KeyType, ValueType>::RecursiveDelete(RedBlackTreeNode* node)
 	FixTreeWhileDeleteNode(next_node);
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::FixTreeWhileDeleteNode(RedBlackTreeNode* const node)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::FixTreeWhileDeleteNode(RedBlackTreeNode* const node)
 {
 	auto next_node = node;
 	while(next_node != nullptr)
@@ -572,8 +666,8 @@ void RedBlackTree<KeyType, ValueType>::FixTreeWhileDeleteNode(RedBlackTreeNode* 
 	return;
 }
 
-template<typename KeyType, typename ValueType>
-typename RedBlackTree<KeyType, ValueType>::RedBlackTreeNode* RedBlackTree<KeyType, ValueType>::ReplaceNodeToChildNode(RedBlackTreeNode* const node)
+template<typename KeyType, typename ValueType, typename Comparator>
+typename RedBlackTree<KeyType, ValueType, Comparator>::RedBlackTreeNode* RedBlackTree<KeyType, ValueType, Comparator>::ReplaceNodeToChildNode(RedBlackTreeNode* const node)
 {
 	const auto right_child_raw_ptr = node->GetRightChildRawPtr();
 	const auto left_child_raw_ptr = node->GetLeftChildRawPtr();
@@ -605,8 +699,8 @@ typename RedBlackTree<KeyType, ValueType>::RedBlackTreeNode* RedBlackTree<KeyTyp
 	return return_pointer;
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::FixTreeAfterInsert(RedBlackTreeNode* node)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::FixTreeAfterInsert(RedBlackTreeNode* node)
 {
 	auto next_node = node;
 	while (next_node != nullptr)
@@ -671,8 +765,8 @@ void RedBlackTree<KeyType, ValueType>::FixTreeAfterInsert(RedBlackTreeNode* node
 	return;
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::RightRotate(RedBlackTreeNode* const node)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::RightRotate(RedBlackTreeNode* const node)
 {
 	assert(node);
 	if (!node)
@@ -716,8 +810,8 @@ void RedBlackTree<KeyType, ValueType>::RightRotate(RedBlackTreeNode* const node)
 	left_child_raw_ptr->ChangeRightChild(std::move(node_uptr));
 }
 
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::LeftRotate(RedBlackTreeNode* const node)
+template<typename KeyType, typename ValueType, typename Comparator>
+void RedBlackTree<KeyType, ValueType, Comparator>::LeftRotate(RedBlackTreeNode* const node)
 {
 	assert(node);
 	if (!node)
@@ -761,8 +855,8 @@ void RedBlackTree<KeyType, ValueType>::LeftRotate(RedBlackTreeNode* const node)
 	right_child_raw_ptr->ChangeLeftChild(std::move(node_uptr));
 }
 
-template<typename KeyType, typename ValueType>
-size_t RedBlackTree<KeyType, ValueType>::GetBlackNodesInSubtree(const RedBlackTreeNode* node_ptr)
+template<typename KeyType, typename ValueType, typename Comparator>
+size_t RedBlackTree<KeyType, ValueType, Comparator>::GetBlackNodesInSubtree(const RedBlackTreeNode* node_ptr)
 {
 	if (node_ptr == nullptr)
 	{

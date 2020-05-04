@@ -1,23 +1,20 @@
 cmake_minimum_required(VERSION 3.10.2)
 
-project(RedBlackTree)
+project(RedBlackTree_run)
 
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_C_COMPILER "/usr/bin/clang")
+add_subdirectory(libs/RedBlackTree)
 
-file(GLOB SRC_FILES RELATIVE Src/ "*.cpp" "*.h")
-file(GLOB HEADERS_FILES RELATIVE Headers/ "*.h")
-add_executable(RedBlackTree Src/main.cpp Headers/RedBlackTree.h ${SRC_FILES} ${HEADERS_FILES})
+add_executable(RedBlackTree_run main.cpp)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set_target_properties(RedBlackTree
+    set_target_properties(RedBlackTree_run
         PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/arch/debug"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib/debug"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/debug"
     )
 else()
-    set_target_properties(RedBlackTree
+    set_target_properties(RedBlackTree_run
         PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/arch/release"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib/release"
@@ -25,5 +22,4 @@ else()
     )
 endif()
 
-
-target_compile_options(RedBlackTree PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Werror -Wall -Wextra -std=c++17>)
+target_link_libraries(RedBlackTree_run PRIVATE RedBlackTree)
